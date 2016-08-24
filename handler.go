@@ -10,7 +10,7 @@ import (
 var safeMethods = []string{"GET", "HEAD", "OPTIONS"}
 
 // Csrf ...
-func Csrf(maxUsage int, secure, httpOnly bool) gin.HandlerFunc {
+func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 	cookieName := "csrf_token"
 	headerName := "X-CSRF-Token"
 	counterName := "csrf_token_counter"
@@ -39,7 +39,7 @@ func Csrf(maxUsage int, secure, httpOnly bool) gin.HandlerFunc {
 
 		csrfCookie, err := c.Cookie(cookieName)
 		if err != nil || csrfCookie == "" {
-			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure, httpOnly)
+			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
 			newCsrfSession = true
 		}
 
@@ -58,7 +58,7 @@ func Csrf(maxUsage int, secure, httpOnly bool) gin.HandlerFunc {
 
 		// max usage generate new token
 		if counter > maxUsage {
-			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure, httpOnly)
+			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
 			newCsrfSession = true
 		}
 		// compare session with header
@@ -73,9 +73,9 @@ func Csrf(maxUsage int, secure, httpOnly bool) gin.HandlerFunc {
 	}
 }
 
-func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure, httpOnly bool) string {
+func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure bool) string {
 	csrfCookie := randomHex(byteLenth)
-	c.SetCookie(cookieName, csrfCookie, maxAge, path, "", secure, httpOnly)
+	c.SetCookie(cookieName, csrfCookie, maxAge, path, "", secure, false)
 	return csrfCookie
 }
 
