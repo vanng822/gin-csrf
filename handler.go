@@ -21,8 +21,6 @@ func Csrf(maxUsage int, secure, httpOnly bool) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
-		ct := session.Get(counterName)
-		csrfSess := session.Get(sessionName)
 
 		var (
 			counter        = 0
@@ -49,11 +47,11 @@ func Csrf(maxUsage int, secure, httpOnly bool) gin.HandlerFunc {
 			c.Next()
 			return
 		}
-
+		ct := session.Get(counterName)
+		csrfSess := session.Get(sessionName)
 		if ct != nil {
 			counter = ct.(int)
 		}
-
 		if csrfSess != nil {
 			csrfSession = csrfSess.(string)
 		}
