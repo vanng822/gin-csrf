@@ -2,6 +2,7 @@ package csrf
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -13,8 +14,9 @@ var safeMethods = []string{"GET", "HEAD", "OPTIONS"}
 func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 	cookieName := "csrf_token"
 	headerName := "X-CSRF-Token"
-	counterName := "csrf_token_counter"
+	usageCounterName := "csrf_token_usage"
 	sessionName := "csrf_token_session"
+	issuedName := "csrf_token_issued"
 	byteLenth := 32
 	maxAge := 60 * 60
 	path := "/"
@@ -25,6 +27,7 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 		var (
 			counter        = 0
 			csrfSession    string
+			issued         int64
 			newCsrfSession bool
 		)
 
@@ -32,7 +35,8 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 			if newCsrfSession {
 				session.Set(sessionName, csrfSession)
 				// make sure reset counter
-				session.Set(counterName, 0)
+				session.Set(usageCounterName, 0)
+				session.Set(issuedName, time.Now().Unix())
 			}
 			session.Save()
 		}()
@@ -47,17 +51,22 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		ct := session.Get(counterName)
-		csrfSess := session.Get(sessionName)
-		if ct != nil {
+		if ct := session.Get(usageCounterName); ct != nil {
 			counter = ct.(int)
 		}
-		if csrfSess != nil {
+		if csrfSess := session.Get(sessionName); csrfSess != nil {
 			csrfSession = csrfSess.(string)
 		}
-
+		if is := session.Get(issuedName); is != nil {
+			issued = is.(int64)
+		}
+		now := time.Now()
 		// max usage generate new token
+
 		if counter > maxUsage {
+			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
+			newCsrfSession = true
+		} else if now.Unix() > (issued + int64(maxAge)) {
 			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
 			newCsrfSession = true
 		}
@@ -68,7 +77,7 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		session.Set(counterName, counter+1)
+		session.Set(usageCounterName, counter+1)
 		c.Next()
 	}
 }
