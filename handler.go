@@ -2,6 +2,7 @@ package csrf
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/contrib/sessions"
@@ -51,6 +52,19 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 			c.Next()
 			return
 		}
+
+		if c.Request.URL.Scheme == "https" {
+			referer, err := url.Parse(c.Request.Header.Get("Referer"))
+			if err != nil || referer == nil {
+				handleError(c, http.StatusBadRequest, gin.H{})
+				return
+			}
+			if !sameOrigin(c.Request.URL, referer) {
+				handleError(c, http.StatusBadRequest, gin.H{})
+				return
+			}
+		}
+
 		if ct := session.Get(usageCounterName); ct != nil {
 			counter = ct.(int)
 		}
@@ -73,13 +87,17 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(headerName)
 		if csrfSession != csrfHeader {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": cookieName})
-			c.Abort()
+			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": cookieName})
 			return
 		}
 		session.Set(usageCounterName, counter+1)
 		c.Next()
 	}
+}
+
+func handleError(c *gin.Context, statusCode int, message gin.H) {
+	c.JSON(statusCode, message)
+	c.Abort()
 }
 
 func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure bool) string {
