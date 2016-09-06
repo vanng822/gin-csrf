@@ -10,7 +10,7 @@ func originOK(u *url.URL) bool {
 }
 
 func sameOrigin(a, b *url.URL) bool {
-	if !originOK(a) || !originOK(b) {
+	if !originOK(b) {
 		return false
 	}
 	return (a.Scheme == b.Scheme && a.Host == b.Host)
