@@ -1,4 +1,5 @@
 # gin-csrf
+Cookie-to-header csrf for gin
 
 # Usage
 ```go
