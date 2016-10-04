@@ -24,7 +24,6 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
-
 		var (
 			counter        = 0
 			csrfSession    string
@@ -32,7 +31,7 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 			newCsrfSession bool
 		)
 
-		defer func() {
+		saveSession := func() {
 			if newCsrfSession {
 				session.Set(sessionName, csrfSession)
 				// make sure reset counter
@@ -40,7 +39,7 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 				session.Set(issuedName, time.Now().Unix())
 			}
 			session.Save()
-		}()
+		}
 
 		csrfCookie, err := c.Cookie(cookieName)
 		if err != nil || csrfCookie == "" {
@@ -87,10 +86,12 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(headerName)
 		if csrfSession != csrfHeader {
+			saveSession()
 			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": cookieName})
 			return
 		}
 		session.Set(usageCounterName, counter+1)
+		defer saveSession()
 		c.Next()
 	}
 }
