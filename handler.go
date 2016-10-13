@@ -12,14 +12,14 @@ import (
 var safeMethods = []string{"GET", "HEAD", "OPTIONS"}
 
 // Csrf ...
-func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
-	cookieName := "csrf_token"
-	headerName := "X-CSRF-Token"
+func Csrf(options *Options) gin.HandlerFunc {
+	if options == nil {
+		options = DefaultOptions()
+	}
 	usageCounterName := "csrf_token_usage"
 	sessionName := "csrf_token_session"
 	issuedName := "csrf_token_issued"
 	byteLenth := 32
-	maxAge := 60 * 60
 	path := "/"
 
 	return func(c *gin.Context) {
@@ -41,9 +41,9 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 			session.Save()
 		}
 
-		csrfCookie, err := c.Cookie(cookieName)
+		csrfCookie, err := c.Cookie(options.CookieName)
 		if err != nil || csrfCookie == "" {
-			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
+			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
 			newCsrfSession = true
 		}
 
@@ -76,18 +76,18 @@ func Csrf(maxUsage int, secure bool) gin.HandlerFunc {
 		now := time.Now()
 		// max usage generate new token
 
-		if counter > maxUsage {
-			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
+		if counter > options.MaxUsage {
+			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
 			newCsrfSession = true
-		} else if now.Unix() > (issued + int64(maxAge)) {
-			csrfSession = newCsrf(c, cookieName, path, maxAge, byteLenth, secure)
+		} else if now.Unix() > (issued + int64(options.MaxAge)) {
+			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
 			newCsrfSession = true
 		}
 		// compare session with header
-		csrfHeader := c.Request.Header.Get(headerName)
+		csrfHeader := c.Request.Header.Get(options.HeaderName)
 		if csrfSession != csrfHeader {
 			saveSession()
-			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": cookieName})
+			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 			return
 		}
 		session.Set(usageCounterName, counter+1)
