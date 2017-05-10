@@ -76,7 +76,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		now := time.Now()
 		// max usage generate new token
 
-		if counter > options.MaxUsage {
+		if counter >= options.MaxUsage {
 			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
 			newCsrfSession = true
 		} else if now.Unix() > (issued + int64(options.MaxAge)) {
