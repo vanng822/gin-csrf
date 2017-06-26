@@ -16,12 +16,6 @@ func Csrf(options *Options) gin.HandlerFunc {
 	if options == nil {
 		options = DefaultOptions()
 	}
-	usageCounterName := "csrf_token_usage"
-	sessionName := "csrf_token_session"
-	issuedName := "csrf_token_issued"
-	byteLenth := 32
-	path := "/"
-
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		var (
@@ -33,17 +27,17 @@ func Csrf(options *Options) gin.HandlerFunc {
 
 		saveSession := func() {
 			if newCsrfSession {
-				session.Set(sessionName, csrfSession)
+				session.Set(options.SessionName, csrfSession)
 				// make sure reset counter
-				session.Set(usageCounterName, 0)
-				session.Set(issuedName, time.Now().Unix())
+				session.Set(options.UsageCounterName, 0)
+				session.Set(options.IssuedName, time.Now().Unix())
 			}
 			session.Save()
 		}
 
 		csrfCookie, err := c.Cookie(options.CookieName)
 		if err != nil || csrfCookie == "" {
-			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
+			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
 			newCsrfSession = true
 		}
 
@@ -64,23 +58,23 @@ func Csrf(options *Options) gin.HandlerFunc {
 			}
 		}
 
-		if ct := session.Get(usageCounterName); ct != nil {
+		if ct := session.Get(options.UsageCounterName); ct != nil {
 			counter = ct.(int)
 		}
-		if csrfSess := session.Get(sessionName); csrfSess != nil {
+		if csrfSess := session.Get(options.SessionName); csrfSess != nil {
 			csrfSession = csrfSess.(string)
 		}
-		if is := session.Get(issuedName); is != nil {
+		if is := session.Get(options.IssuedName); is != nil {
 			issued = is.(int64)
 		}
 		now := time.Now()
 		// max usage generate new token
 
 		if counter >= options.MaxUsage {
-			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
+			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
 			newCsrfSession = true
 		} else if now.Unix() > (issued + int64(options.MaxAge)) {
-			csrfSession = newCsrf(c, options.CookieName, path, options.MaxAge, byteLenth, options.Secure)
+			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
 			newCsrfSession = true
 		}
 		// compare session with header
@@ -90,7 +84,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 			return
 		}
-		session.Set(usageCounterName, counter+1)
+		session.Set(options.UsageCounterName, counter+1)
 		defer saveSession()
 		c.Next()
 	}
