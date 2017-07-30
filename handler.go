@@ -19,7 +19,6 @@ func Csrf(options *Options) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
 		var (
 			counter     = 0
 			csrfSession string
@@ -42,7 +41,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 				return
 			}
 		}
-
+		session := sessions.Default(c)
 		csrfCookie, _ := c.Cookie(options.CookieName)
 
 		if csrfCookie == "" {
