@@ -63,22 +63,23 @@ func Csrf(options *Options) gin.HandlerFunc {
 		if ct := session.Get(options.UsageCounterName); ct != nil {
 			counter = ct.(int)
 		}
-
-		if is := session.Get(options.IssuedName); is != nil {
-			issued = is.(int64)
-		}
-
-		now := time.Now()
 		// max usage generate new token
 		if counter >= options.MaxUsage {
 			log.Println("csrf_token max usage. New token required")
 			generateNewCsrfAndHandle(c, session, options)
 			return
-		} else if now.Unix() > (issued + int64(options.MaxAge)) {
+		}
+
+		now := time.Now()
+		if is := session.Get(options.IssuedName); is != nil {
+			issued = is.(int64)
+		}
+		if now.Unix() > (issued + int64(options.MaxAge)) {
 			log.Println("csrf_token max age. New token required")
 			generateNewCsrfAndHandle(c, session, options)
 			return
 		}
+
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
 		log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
