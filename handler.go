@@ -1,6 +1,7 @@
 package csrf
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -11,16 +12,6 @@ import (
 
 var safeMethods = []string{"GET", "HEAD", "OPTIONS"}
 
-func saveSession(session sessions.Session, options *Options, csrfSession string, newCsrfSession bool) {
-	if newCsrfSession {
-		session.Set(options.SessionName, csrfSession)
-		// make sure reset counter
-		session.Set(options.UsageCounterName, 0)
-		session.Set(options.IssuedName, time.Now().Unix())
-	}
-	session.Save()
-}
-
 // Csrf ...
 func Csrf(options *Options) gin.HandlerFunc {
 	if options == nil {
@@ -30,17 +21,10 @@ func Csrf(options *Options) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		var (
-			counter        = 0
-			csrfSession    string
-			issued         int64
-			newCsrfSession bool
+			counter     = 0
+			csrfSession string
+			issued      int64
 		)
-
-		csrfCookie, err := c.Cookie(options.CookieName)
-		if err != nil || csrfCookie == "" {
-			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
-			newCsrfSession = true
-		}
 
 		if isMethodSafe(c.Request.Method) {
 			c.Next()
@@ -59,44 +43,72 @@ func Csrf(options *Options) gin.HandlerFunc {
 			}
 		}
 
-		if ct := session.Get(options.UsageCounterName); ct != nil {
-			counter = ct.(int)
+		csrfCookie, _ := c.Cookie(options.CookieName)
+
+		if csrfCookie == "" {
+			log.Println("csrf_token not found in cookie")
+			generateNewCsrfAndHandle(c, session, options)
+			return
 		}
+
 		if csrfSess := session.Get(options.SessionName); csrfSess != nil {
 			csrfSession = csrfSess.(string)
 		}
+
+		if csrfSession == "" {
+			log.Println("csrf_token not found in session")
+			generateNewCsrfAndHandle(c, session, options)
+			return
+		}
+
+		if ct := session.Get(options.UsageCounterName); ct != nil {
+			counter = ct.(int)
+		}
+
 		if is := session.Get(options.IssuedName); is != nil {
 			issued = is.(int64)
 		}
+
 		now := time.Now()
 		// max usage generate new token
 		if counter >= options.MaxUsage {
-			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
-			newCsrfSession = true
-			saveSession(session, options, csrfSession, newCsrfSession)
-			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
+			log.Println("csrf_token max usage. New token required")
+			generateNewCsrfAndHandle(c, session, options)
 			return
 		} else if now.Unix() > (issued + int64(options.MaxAge)) {
-			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
-			newCsrfSession = true
-			saveSession(session, options, csrfSession, newCsrfSession)
-			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
+			log.Println("csrf_token max age. New token required")
+			generateNewCsrfAndHandle(c, session, options)
 			return
 		}
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
-		//log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
+		log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
 		if csrfSession != csrfHeader {
-			csrfSession = newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
-			newCsrfSession = true
-			saveSession(session, options, csrfSession, newCsrfSession)
-			handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
+			log.Println("csrf_token diff. New token required")
+			generateNewCsrfAndHandle(c, session, options)
 			return
 		}
 		session.Set(options.UsageCounterName, counter+1)
-		defer saveSession(session, options, csrfSession, newCsrfSession)
+		defer saveSession(session, options, csrfSession, false)
 		c.Next()
 	}
+}
+
+func saveSession(session sessions.Session, options *Options, csrfSession string, newCsrfSession bool) {
+	if newCsrfSession {
+		session.Set(options.SessionName, csrfSession)
+		// make sure reset counter
+		session.Set(options.UsageCounterName, 0)
+		session.Set(options.IssuedName, time.Now().Unix())
+	}
+	session.Save()
+}
+
+func generateNewCsrfAndHandle(c *gin.Context, session sessions.Session, options *Options) {
+	csrfSession := newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
+	saveSession(session, options, csrfSession, true)
+	log.Println("generate new token", csrfSession)
+	handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 }
 
 func handleError(c *gin.Context, statusCode int, message gin.H) {
