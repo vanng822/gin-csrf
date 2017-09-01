@@ -117,7 +117,7 @@ func handleError(c *gin.Context, statusCode int, message gin.H) {
 }
 
 func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure bool) string {
-	csrfCookie := randomHex(byteLenth)
+	csrfCookie := generateToken(byteLenth)
 	c.SetCookie(cookieName, csrfCookie, maxAge, path, "", secure, false)
 	return csrfCookie
 }
