@@ -1,6 +1,7 @@
 package csrf
 
 import (
+	"crypto/subtle"
 	"log"
 	"net/http"
 	"net/url"
@@ -83,7 +84,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
 		log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
-		if csrfSession != csrfHeader {
+		if isTokenValid(csrfSession, csrfHeader) {
 			log.Println("csrf_token diff. New token required")
 			generateNewCsrfAndHandle(c, session, options)
 			return
@@ -92,6 +93,10 @@ func Csrf(options *Options) gin.HandlerFunc {
 		defer saveSession(session, options, csrfSession, false)
 		c.Next()
 	}
+}
+
+func isTokenValid(csrfSession, csrfHeader string) bool {
+	return subtle.ConstantTimeCompare([]byte(csrfSession), []byte(csrfHeader)) == 1
 }
 
 func saveSession(session sessions.Session, options *Options, csrfSession string, newCsrfSession bool) {
