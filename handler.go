@@ -84,7 +84,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
 		log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
-		if isTokenValid(csrfSession, csrfHeader) {
+		if !isTokenValid(csrfSession, csrfHeader) {
 			log.Println("csrf_token diff. New token required")
 			generateNewCsrfAndHandle(c, session, options)
 			return
