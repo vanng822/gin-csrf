@@ -21,7 +21,7 @@ type Options struct {
 	ByteLenth int
 	// path which the cookie is valid
 	Path string
-	// Save methods
+	// Http methods considered as safe and pass validation
 	SafeMethods []string
 }
 
