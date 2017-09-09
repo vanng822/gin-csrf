@@ -11,8 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var safeMethods = []string{"GET", "HEAD", "OPTIONS"}
-
 // Csrf ...
 func Csrf(options *Options) gin.HandlerFunc {
 	if options == nil {
@@ -26,7 +24,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 			issued      int64
 		)
 
-		if isMethodSafe(c.Request.Method) {
+		if isMethodSafe(c.Request.Method, options.SafeMethods) {
 			c.Next()
 			return
 		}
@@ -127,7 +125,7 @@ func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, sec
 	return csrfCookie
 }
 
-func isMethodSafe(method string) bool {
+func isMethodSafe(method string, safeMethods []string) bool {
 	for _, m := range safeMethods {
 		if method == m {
 			return true

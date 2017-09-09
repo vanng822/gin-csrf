@@ -21,6 +21,8 @@ type Options struct {
 	ByteLenth int
 	// path which the cookie is valid
 	Path string
+	// Save methods
+	SafeMethods []string
 }
 
 func DefaultOptions() *Options {
@@ -35,5 +37,6 @@ func DefaultOptions() *Options {
 		IssuedName:       "csrf_token_issued",
 		ByteLenth:        32,
 		Path:             "/",
+		SafeMethods:      []string{"GET", "HEAD", "OPTIONS"},
 	}
 }
