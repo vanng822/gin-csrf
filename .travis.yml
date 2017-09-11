@@ -12,6 +12,8 @@ env:
   - PATH="$HOME/gopath/bin:$HOME/bin:$PATH"
 
 install:
+  - go get github.com/gin-gonic/gin
+  - go get github.com/gin-gonic/contrib/sessions
   - go get github.com/stretchr/testify/assert
 
 script:
