@@ -31,3 +31,15 @@ func TestSameOriginFalse(t *testing.T) {
 	testUrl2, _ := url.Parse("https://vnmedia.se")
 	assert.False(t, sameOrigin(testUrl1, testUrl2))
 }
+
+func TestSameOriginFalseBNotOk(t *testing.T) {
+	testUrl1, _ := url.Parse("https://am-lich.com")
+	testUrl2 := &url.URL{Scheme: "https"}
+	assert.False(t, sameOrigin(testUrl1, testUrl2))
+}
+
+func TestSameOriginFalseANotOk(t *testing.T) {
+	testUrl1 := &url.URL{Scheme: "https"}
+	testUrl2, _ := url.Parse("https://am-lich.com")
+	assert.False(t, sameOrigin(testUrl1, testUrl2))
+}
