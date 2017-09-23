@@ -1,6 +1,7 @@
 package csrf
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -212,15 +213,27 @@ func TestHttpsSameReferer(t *testing.T) {
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
+		c.Request.URL.Host = "127.0.0.1"
 		c.Request.Header.Set("Referer", c.Request.URL.String())
 	})
+
 	router.Use(Csrf(options))
+	router.POST("/", func(c *gin.Context) {})
 	ts := httptest.NewTLSServer(router)
 	defer ts.Close()
 
 	client := ts.Client()
 	resp, _ := client.Post(ts.URL, "application/json", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	cookies := resp.Cookies()
+	log.Println(cookies)
+	sessionCookie, csrfCookie := testFetchCookies(cookies, options)
+
+	assert.Equal(t, 400, resp.StatusCode)
+	req, _ := http.NewRequest("POST", ts.URL, strings.NewReader(""))
+	testAddCookies(sessionCookie, csrfCookie, req, options)
+	resp, _ = client.Do(req)
+	assert.Equal(t, 200, resp.StatusCode)
 }
 
 func TestHttpsDifferentReferer(t *testing.T) {
@@ -232,6 +245,7 @@ func TestHttpsDifferentReferer(t *testing.T) {
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
+		c.Request.URL.Host = "127.0.0.1"
 		c.Request.Header.Set("Referer", "http://some.domain.tld")
 	})
 	router.Use(Csrf(options))
