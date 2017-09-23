@@ -1,7 +1,6 @@
 package csrf
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -226,7 +225,6 @@ func TestHttpsSameReferer(t *testing.T) {
 	resp, _ := client.Post(ts.URL, "application/json", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	cookies := resp.Cookies()
-	log.Println(cookies)
 	sessionCookie, csrfCookie := testFetchCookies(cookies, options)
 
 	assert.Equal(t, 400, resp.StatusCode)
