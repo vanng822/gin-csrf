@@ -1,4 +1,6 @@
+//
 // +build go1.9
+
 package csrf
 
 import (
