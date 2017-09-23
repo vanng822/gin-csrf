@@ -16,5 +16,8 @@ install:
   - go get github.com/gin-gonic/contrib/sessions
   - go get github.com/stretchr/testify/assert
 
+services:
+  - redis-server
+
 script:
   - go test -v
