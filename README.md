@@ -1,5 +1,5 @@
 # gin-csrf
-Cookie-to-header csrf for gin with max usage feature.
+Cookie-to-header csrf for gin with max usage feature. Using this package in conjunction with session. Cookie is only the transport.
 
 # Usage
 ```go
