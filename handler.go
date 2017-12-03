@@ -81,7 +81,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 
 		// compare session with header
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
-		log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
+		//log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
 		if !isTokenValid(csrfSession, csrfHeader) {
 			log.Println("csrf_token diff. New token required")
 			generateNewCsrfAndHandle(c, session, options)
@@ -110,7 +110,7 @@ func saveSession(session sessions.Session, options *Options, csrfSession string,
 func generateNewCsrfAndHandle(c *gin.Context, session sessions.Session, options *Options) {
 	csrfSession := newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
 	saveSession(session, options, csrfSession, true)
-	log.Println("generate new token", csrfSession)
+	//log.Println("generate new token", csrfSession)
 	handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 }
 
