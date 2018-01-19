@@ -13,7 +13,7 @@ env:
 
 install:
   - go get github.com/gin-gonic/gin
-  - go get github.com/gin-gonic/contrib/sessions
+  - go get github.com/gin-contrib/sessions
   - go get github.com/stretchr/testify/assert
 
 services:

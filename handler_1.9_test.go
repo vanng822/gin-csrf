@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/contrib/sessions"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
