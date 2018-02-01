@@ -115,8 +115,8 @@ func generateNewCsrfAndHandle(c *gin.Context, session sessions.Session, options 
 }
 
 func handleError(c *gin.Context, statusCode int, message gin.H) {
-	c.JSON(statusCode, message)
 	c.Abort()
+	c.JSON(statusCode, message)
 }
 
 func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure bool) string {
