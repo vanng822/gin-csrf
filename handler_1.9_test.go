@@ -1,6 +1,3 @@
-//
-// +build go1.9
-
 package csrf
 
 import (
@@ -10,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +17,7 @@ func TestHttpsNoReferer(t *testing.T) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := sessions.NewRedisStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
@@ -39,7 +37,7 @@ func TestHttpsSameReferer(t *testing.T) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := sessions.NewRedisStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
@@ -70,7 +68,7 @@ func TestHttpsDifferentReferer(t *testing.T) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := sessions.NewRedisStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
