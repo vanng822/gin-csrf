@@ -31,9 +31,10 @@ func TestIsTokenValidFalse(t *testing.T) {
 
 func testFetchCookies(cookies []*http.Cookie, options *Options) (sessionCookie *http.Cookie, csrfCookie *http.Cookie) {
 	for _, c := range cookies {
-		if c.Name == options.CookieName {
+		switch c.Name {
+		case options.CookieName:
 			csrfCookie = c
-		} else if c.Name == "session" {
+		case "session":
 			sessionCookie = c
 		}
 	}
@@ -51,7 +52,7 @@ func testSetup() (*gin.Engine, *Options) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(Csrf(options))
 	router.GET("/", func(c *gin.Context) {
