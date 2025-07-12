@@ -17,7 +17,7 @@ func TestHttpsNoReferer(t *testing.T) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
@@ -37,7 +37,7 @@ func TestHttpsSameReferer(t *testing.T) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
@@ -68,7 +68,7 @@ func TestHttpsDifferentReferer(t *testing.T) {
 	options := DefaultOptions()
 	options.MaxUsage = 10
 	options.MaxAge = 15 * 60
-	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("something"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", "", []byte("something"))
 	router.Use(sessions.Sessions("session", store))
 	router.Use(func(c *gin.Context) {
 		c.Request.URL.Scheme = "https"
