@@ -3,11 +3,10 @@ package csrf
 import (
 	"log"
 	"os"
-	"strings"
 )
 
 type LoggerInterface interface {
-	Info(msg any, v ...any)
+	Info(msg ...any)
 }
 
 var (
@@ -19,15 +18,6 @@ type stdLogger struct {
 }
 
 // Info logs a message at the Info level.
-func (l *stdLogger) Info(msg any, args ...any) {
-	// just a simple way to check if msg is a format string
-	// if so, use Printf
-	// else use Println
-	if v, ok := msg.(string); ok && strings.Contains(v, "%") {
-		l.logger.Printf(v, args...)
-		return
-	}
-
-	args = append([]any{msg}, args...)
-	l.logger.Println(args...)
+func (l *stdLogger) Info(msg ...any) {
+	l.logger.Println(msg...)
 }
