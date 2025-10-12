@@ -2,7 +2,6 @@ package csrf
 
 import (
 	"crypto/subtle"
-	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -45,7 +44,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		csrfCookie, _ := c.Cookie(options.CookieName)
 
 		if csrfCookie == "" {
-			log.Println("csrf_token not found in cookie")
+			Logger.Info("csrf_token not found in cookie")
 			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
@@ -55,7 +54,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		}
 
 		if csrfSession == "" {
-			log.Println("csrf_token not found in session")
+			Logger.Info("csrf_token not found in session")
 			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
@@ -65,7 +64,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		}
 		// max usage generate new token
 		if counter >= options.MaxUsage {
-			log.Println("csrf_token max usage. New token required")
+			Logger.Info("csrf_token max usage. New token required")
 			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
@@ -75,7 +74,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 			issued = is.(int64)
 		}
 		if now.Unix() > (issued + int64(options.MaxAge)) {
-			log.Println("csrf_token max age. New token required")
+			Logger.Info("csrf_token max age. New token required")
 			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
@@ -84,7 +83,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
 		//log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
 		if !isTokenValid(csrfSession, csrfHeader) {
-			log.Println("csrf_token diff. New token required")
+			Logger.Info("csrf_token diff. New token required")
 			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
