@@ -46,7 +46,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 
 		if csrfCookie == "" {
 			log.Println("csrf_token not found in cookie")
-			generateNewCsrfAndHandle(c, session, options)
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -56,7 +56,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 
 		if csrfSession == "" {
 			log.Println("csrf_token not found in session")
-			generateNewCsrfAndHandle(c, session, options)
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -66,7 +66,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		// max usage generate new token
 		if counter >= options.MaxUsage {
 			log.Println("csrf_token max usage. New token required")
-			generateNewCsrfAndHandle(c, session, options)
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -76,7 +76,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		}
 		if now.Unix() > (issued + int64(options.MaxAge)) {
 			log.Println("csrf_token max age. New token required")
-			generateNewCsrfAndHandle(c, session, options)
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -85,7 +85,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 		//log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
 		if !isTokenValid(csrfSession, csrfHeader) {
 			log.Println("csrf_token diff. New token required")
-			generateNewCsrfAndHandle(c, session, options)
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 		session.Set(options.UsageCounterName, counter+1)
@@ -108,18 +108,18 @@ func saveSession(session sessions.Session, options *Options, csrfSession string,
 	session.Save()
 }
 
-func generateNewCsrfAndHandle(c *gin.Context, session sessions.Session, options *Options) {
-	newCsrf, err := generateToken(options.ByteLength)
+func generateNewCsrfTokenAndHandle(c *gin.Context, session sessions.Session, options *Options) {
+	newCsrfToken, err := generateToken(options.ByteLength)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, gin.H{"status": "error", "error": "internal error"})
 		return
 	}
 	// set cookie
-	c.SetCookie(options.CookieName, newCsrf, options.MaxAge, options.Path, "", options.Secure, false)
+	c.SetCookie(options.CookieName, newCsrfToken, options.MaxAge, options.Path, "", options.Secure, false)
 
-	saveSession(session, options, newCsrf, true)
+	saveSession(session, options, newCsrfToken, true)
 
-	// bad request and error=CookieName for a challenge to client to retry with new token
+	// bad request and error=CookieName for challenging the client to retry with new token
 	handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 }
 
