@@ -17,7 +17,7 @@ func TestDefaultOptions(t *testing.T) {
 		UsageCounterName: "csrf_token_usage",
 		SessionName:      "csrf_token_session",
 		IssuedName:       "csrf_token_issued",
-		ByteLenth:        32,
+		ByteLength:       32,
 		Path:             "/",
 		SafeMethods:      []string{"GET", "HEAD", "OPTIONS"},
 	}

@@ -2,9 +2,9 @@ package csrf
 
 import (
 	"crypto/subtle"
-	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -24,7 +24,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 			issued      int64
 		)
 
-		if isMethodSafe(c.Request.Method, options.SafeMethods) {
+		if slices.Contains(options.SafeMethods, c.Request.Method) {
 			c.Next()
 			return
 		}
@@ -44,8 +44,8 @@ func Csrf(options *Options) gin.HandlerFunc {
 		csrfCookie, _ := c.Cookie(options.CookieName)
 
 		if csrfCookie == "" {
-			log.Println("csrf_token not found in cookie")
-			generateNewCsrfAndHandle(c, session, options)
+			Logger.Info("csrf_token not found in cookie")
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -54,8 +54,8 @@ func Csrf(options *Options) gin.HandlerFunc {
 		}
 
 		if csrfSession == "" {
-			log.Println("csrf_token not found in session")
-			generateNewCsrfAndHandle(c, session, options)
+			Logger.Info("csrf_token not found in session")
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -64,8 +64,8 @@ func Csrf(options *Options) gin.HandlerFunc {
 		}
 		// max usage generate new token
 		if counter >= options.MaxUsage {
-			log.Println("csrf_token max usage. New token required")
-			generateNewCsrfAndHandle(c, session, options)
+			Logger.Info("csrf_token max usage. New token required")
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -74,8 +74,8 @@ func Csrf(options *Options) gin.HandlerFunc {
 			issued = is.(int64)
 		}
 		if now.Unix() > (issued + int64(options.MaxAge)) {
-			log.Println("csrf_token max age. New token required")
-			generateNewCsrfAndHandle(c, session, options)
+			Logger.Info("csrf_token max age. New token required")
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 
@@ -83,8 +83,8 @@ func Csrf(options *Options) gin.HandlerFunc {
 		csrfHeader := c.Request.Header.Get(options.HeaderName)
 		//log.Println("sess", csrfSession, "cookie", csrfCookie, "csrfHeader", csrfHeader, counter, options.MaxUsage)
 		if !isTokenValid(csrfSession, csrfHeader) {
-			log.Println("csrf_token diff. New token required")
-			generateNewCsrfAndHandle(c, session, options)
+			Logger.Info("csrf_token diff. New token required")
+			generateNewCsrfTokenAndHandle(c, session, options)
 			return
 		}
 		session.Set(options.UsageCounterName, counter+1)
@@ -107,29 +107,22 @@ func saveSession(session sessions.Session, options *Options, csrfSession string,
 	session.Save()
 }
 
-func generateNewCsrfAndHandle(c *gin.Context, session sessions.Session, options *Options) {
-	csrfSession := newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
-	saveSession(session, options, csrfSession, true)
-	//log.Println("generate new token", csrfSession)
+func generateNewCsrfTokenAndHandle(c *gin.Context, session sessions.Session, options *Options) {
+	newCsrfToken, err := generateToken(options.ByteLength)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, gin.H{"status": "error", "error": "internal error"})
+		return
+	}
+	// set cookie
+	c.SetCookie(options.CookieName, newCsrfToken, options.MaxAge, options.Path, "", options.Secure, false)
+
+	saveSession(session, options, newCsrfToken, true)
+
+	// bad request and error=CookieName for challenging the client to retry with new token
 	handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 }
 
 func handleError(c *gin.Context, statusCode int, message gin.H) {
 	c.Abort()
 	c.JSON(statusCode, message)
-}
-
-func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure bool) string {
-	csrfCookie := generateToken(byteLenth)
-	c.SetCookie(cookieName, csrfCookie, maxAge, path, "", secure, false)
-	return csrfCookie
-}
-
-func isMethodSafe(method string, safeMethods []string) bool {
-	for _, m := range safeMethods {
-		if method == m {
-			return true
-		}
-	}
-	return false
 }

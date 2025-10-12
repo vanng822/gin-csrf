@@ -18,7 +18,7 @@ type Options struct {
 	// name for keeping issued time in redis
 	IssuedName string
 	// Length of csrf token
-	ByteLenth int
+	ByteLength int
 	// path which the cookie is valid
 	Path string
 	// Http methods considered as safe and pass validation
@@ -35,7 +35,7 @@ func DefaultOptions() *Options {
 		UsageCounterName: "csrf_token_usage",
 		SessionName:      "csrf_token_session",
 		IssuedName:       "csrf_token_issued",
-		ByteLenth:        32,
+		ByteLength:       32,
 		Path:             "/",
 		SafeMethods:      []string{"GET", "HEAD", "OPTIONS"},
 	}

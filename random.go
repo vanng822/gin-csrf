@@ -6,10 +6,10 @@ import (
 	"io"
 )
 
-func generateToken(byteLenth int) string {
-	result := make([]byte, byteLenth)
+func generateToken(byteLength int) (string, error) {
+	result := make([]byte, byteLength)
 	if _, err := io.ReadFull(rand.Reader, result); err != nil {
-		panic(err)
+		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(result)
+	return base64.RawURLEncoding.EncodeToString(result), nil
 }
