@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -24,7 +25,7 @@ func Csrf(options *Options) gin.HandlerFunc {
 			issued      int64
 		)
 
-		if isMethodSafe(c.Request.Method, options.SafeMethods) {
+		if slices.Contains(options.SafeMethods, c.Request.Method) {
 			c.Next()
 			return
 		}
@@ -108,28 +109,21 @@ func saveSession(session sessions.Session, options *Options, csrfSession string,
 }
 
 func generateNewCsrfAndHandle(c *gin.Context, session sessions.Session, options *Options) {
-	csrfSession := newCsrf(c, options.CookieName, options.Path, options.MaxAge, options.ByteLenth, options.Secure)
-	saveSession(session, options, csrfSession, true)
-	//log.Println("generate new token", csrfSession)
+	newCsrf, err := generateToken(options.ByteLength)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, gin.H{"status": "error", "error": "internal error"})
+		return
+	}
+	// set cookie
+	c.SetCookie(options.CookieName, newCsrf, options.MaxAge, options.Path, "", options.Secure, false)
+
+	saveSession(session, options, newCsrf, true)
+
+	// bad request and error=CookieName for a challenge to client to retry with new token
 	handleError(c, http.StatusBadRequest, gin.H{"status": "error", "error": options.CookieName})
 }
 
 func handleError(c *gin.Context, statusCode int, message gin.H) {
 	c.Abort()
 	c.JSON(statusCode, message)
-}
-
-func newCsrf(c *gin.Context, cookieName, path string, maxAge, byteLenth int, secure bool) string {
-	csrfCookie := generateToken(byteLenth)
-	c.SetCookie(cookieName, csrfCookie, maxAge, path, "", secure, false)
-	return csrfCookie
-}
-
-func isMethodSafe(method string, safeMethods []string) bool {
-	for _, m := range safeMethods {
-		if method == m {
-			return true
-		}
-	}
-	return false
 }
